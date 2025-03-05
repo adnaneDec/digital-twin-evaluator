@@ -4,3 +4,6 @@
 .venv/
 __pycache__.DS_Store
 DT_PDFs/
+Rapport/
+OLD/
+.streamlit/secrets.toml
