@@ -1,27 +1,37 @@
-# Essential Libraries
+# Streamlit and UI Components
 streamlit
+streamlit-scroll-to-top
+streamlit-gsheets
+streamlit-components
+
+# Data Processing
 pandas
 numpy
+
+# Visualization
+plotly
 matplotlib
 seaborn
-scipy
-scikit-learn
-statsmodels
 
-# API & Cloud
+# AI and OpenAI API
 openai
-requests
-boto3
-s3fs
+text-embedding-ada-002
 
-# Async & Performance
-aiobotocore
-aiohttp
-asyncio
-
-# Misc
-pyyaml
-pydantic
-pyarrow
-plotly
+# Environment Variables
 python-dotenv
+
+# Utilities and Performance
+requests
+uuid
+jsonschema
+joblib
+pydantic
+scipy
+statsmodels
+scikit-learn
+
+# File Handling
+Pillow
+
+# Audio Recorder
+audio-recorder-streamlit
