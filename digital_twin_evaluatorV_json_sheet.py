@@ -949,7 +949,7 @@ elif page == "Chatbot":
 
         if len(st.session_state.messages) == 1 and st.session_state.messages[0]["role"] == "user":
             initial_prompt = st.session_state.messages[0]["content"][0]["text"]
-            answer = gpt_answer_query(initial_prompt, top_k=5)
+            answer = gpt_answer_query(initial_prompt)
             st.session_state.messages.append({
                 "role": "assistant",
                 "content": [{"type": "text", "text": answer}]
