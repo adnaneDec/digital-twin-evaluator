@@ -24,3 +24,4 @@ pyyaml
 pydantic
 pyarrow
 plotly
+python-dotenv
