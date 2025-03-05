@@ -1,7 +1,9 @@
 # Streamlit and UI Components
 streamlit
 streamlit-scroll-to-top
-streamlit-gsheets
+gspread
+oauth2client
+git+https://github.com/streamlit/streamlit-gsheets.git
 streamlit-components
 
 # Data Processing
