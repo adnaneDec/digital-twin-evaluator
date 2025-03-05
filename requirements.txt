@@ -4,7 +4,6 @@ streamlit-scroll-to-top
 gspread
 oauth2client
 st-gsheets-connection
-streamlit-components
 
 # Data Processing
 pandas
