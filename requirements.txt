@@ -3,7 +3,7 @@ streamlit
 streamlit-scroll-to-top
 gspread
 oauth2client
-git+https://github.com/streamlit/streamlit-gsheets.git
+git+https://github.com/streamlit/gsheets-connection
 streamlit-components
 
 # Data Processing
