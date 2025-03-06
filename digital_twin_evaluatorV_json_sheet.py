@@ -9,7 +9,6 @@ from functools import lru_cache
 from streamlit_gsheets import GSheetsConnection
 import uuid
 import json
-import streamlit.components.v1 as components
 from streamlit_scroll_to_top import scroll_to_here
 
 from openai import OpenAI
