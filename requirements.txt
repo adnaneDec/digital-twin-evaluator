@@ -5,9 +5,11 @@ gspread
 oauth2client
 st-gsheets-connection
 
-# Data Processing
-numpy==1.23.5
-pandas==1.5.3
+# Essential Build Tools (Fix distutils & numpy errors)
+setuptools>=65.5.0
+wheel
+numpy==1.26.3
+pandas>=2.0.0
 
 # Visualization
 plotly
