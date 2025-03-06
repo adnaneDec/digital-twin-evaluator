@@ -16,7 +16,6 @@ seaborn
 
 # AI and OpenAI API
 openai
-text-embedding-ada-002
 
 # Environment Variables
 python-dotenv
