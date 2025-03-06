@@ -6,8 +6,8 @@ oauth2client
 st-gsheets-connection
 
 # Data Processing
-pandas
-numpy
+numpy==1.23.5
+pandas==1.5.3
 
 # Visualization
 plotly
