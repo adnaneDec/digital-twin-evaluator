@@ -193,13 +193,13 @@ def stream_llm_response(client, model_params):
 conn = GSheetsConnection(connection_name="gsheets")  # Match the name in secrets.toml
 
 # Fetch existing data from all worksheets
-profile_df = conn.read(worksheet="profile_data", usecols=list(range(9)), ttl=500)  # Adjust `range` to match your columns
+profile_df = conn.read(worksheet="profile_data", usecols=list(range(9)), ttl=2000)  # Adjust `range` to match your columns
 profile_df = profile_df.dropna(how="all")
 
-scores_df = conn.read(worksheet="scores", usecols=list(range(6)), ttl=500)  # Adjust `range` as per column count
+scores_df = conn.read(worksheet="scores", usecols=list(range(6)), ttl=2000)  # Adjust `range` as per column count
 scores_df = scores_df.dropna(how="all")
 
-comments_df = conn.read(worksheet="comments", usecols=list(range(5)), ttl=500)  # Adjust `range` as per column count
+comments_df = conn.read(worksheet="comments", usecols=list(range(5)), ttl=2000)  # Adjust `range` as per column count
 comments_df = comments_df.dropna(how="all")
 
 # Generate unique session ID if not already present
@@ -640,7 +640,7 @@ def profile_identification():
         }
     
     # Remplir les champs avec les valeurs existantes de l'état de session
-    st.write("Avant de commencer, apprenons à mieux nous connaître 🙂 Les résultats de ce questionnaire seront collectés de manière anonyme à des fins de recherche.")
+    st.write("Avant de commencer, apprenons à mieux nous connaître 🙂 Les résultats de ce questionnaire seront collectés de manière anonyme à des fins de recherche. Cela vous prendra environ 15 minutes à compléter. Les résultats du questionnaire vous permettront également d'échanger avec un GPT spécialisé en littérature sur les jumeaux numériques. N'hésitez donc pas à ajouter autant de commentaires que nécessaire pour obtenir des réponses concrètes.")
     st.session_state["profile_data"]["field_of_work"] = st.radio(
         "Quel est votre domaine d'activité ?", 
         ["Recherche", "Industrie", "logistique et supply chain"], 
@@ -1027,7 +1027,6 @@ elif page == "Chatbot":
             )
 
             st.divider()
-
 
         # Only process user input if it's non-empty
         prompt = st.chat_input("Hi! Ask me anything...")

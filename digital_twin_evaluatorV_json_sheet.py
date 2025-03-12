@@ -193,13 +193,13 @@ def stream_llm_response(client, model_params):
 conn = GSheetsConnection(connection_name="gsheets")  # Match the name in secrets.toml
 
 # Fetch existing data from all worksheets
-profile_df = conn.read(worksheet="profile_data", usecols=list(range(9)), ttl=500)  # Adjust `range` to match your columns
+profile_df = conn.read(worksheet="profile_data", usecols=list(range(9)), ttl=2000)  # Adjust `range` to match your columns
 profile_df = profile_df.dropna(how="all")
 
-scores_df = conn.read(worksheet="scores", usecols=list(range(6)), ttl=500)  # Adjust `range` as per column count
+scores_df = conn.read(worksheet="scores", usecols=list(range(6)), ttl=2000)  # Adjust `range` as per column count
 scores_df = scores_df.dropna(how="all")
 
-comments_df = conn.read(worksheet="comments", usecols=list(range(5)), ttl=500)  # Adjust `range` as per column count
+comments_df = conn.read(worksheet="comments", usecols=list(range(5)), ttl=2000)  # Adjust `range` as per column count
 comments_df = comments_df.dropna(how="all")
 
 # Generate unique session ID if not already present
@@ -581,23 +581,23 @@ def profile_identification():
         }
 
     # Populate fields with existing session state values
-    st.write("Before we dive in, let us know each other a little bit 🙂. The results of this questionnaire are to be collected for research purposes.")
+    st.write("Before we dive in, let us know each other a little bit 🙂. The results of this questionnaire are to be collected for research purposes. It will take you approximately 15 minutes to complete. The results of the questionnaire will also allow you to interact with a Digital Twin literature GPT regarding your answers or interests. Feel free to add as many comments as needed to get concrete answers.")
     st.session_state["profile_data"]["field_of_work"] = st.radio(
         "What is your field of work?", 
-        ["Research", "Industry"], 
-        index=["Research", "Industry"].index(st.session_state["profile_data"].get("field_of_work", "Research"))
+        ["Research", "Industry", "logistics and supply chain"], 
+        index=["Research", "Industry", "logistics and supply chain"].index(st.session_state["profile_data"].get("field_of_work", "Research"))
     )
     st.session_state["profile_data"]["years_experience"] = st.slider(
-        "How many years have you worked on Information Systems (IS) or Warehouse Management Systems (WMS)?", 
+        "How many years have you worked on the systems you are testing with this survey?", 
         0, 50, step=1, 
         value=st.session_state["profile_data"].get("years_experience", 0)
     )
     st.session_state["profile_data"]["current_system"] = st.text_input(
-        "What is the name of the IS or WMS you use (if any)?", 
+        "What is the name of the system you use if any (Information System, Digital Twin, Warehouse Management System, IBM, Simulation, CPS ...)?", 
         value=st.session_state["profile_data"].get("current_system", "")
     )
     st.session_state["profile_data"]["position"] = st.text_input(
-        "What is your current position?", 
+        "What is your current work position?", 
         value=st.session_state["profile_data"].get("position", "")
     )
     st.session_state["profile_data"]["country"] = st.text_input(
@@ -1040,5 +1040,3 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-
-
