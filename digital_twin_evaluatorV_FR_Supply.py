@@ -207,6 +207,7 @@ if "unique_id" not in st.session_state:
     st.session_state["unique_id"] = str(uuid.uuid4())
 
 # Sidebar navigation with logos
+# Sidebar navigation with logos
 st.sidebar.markdown(
     """
     <style>
@@ -253,11 +254,12 @@ def classify_system(scores):
     """
     Classifies a system based on rule-based logic using evaluation scores.
     """
-    import numpy as np
 
     # Calculate average scores across all categories
-    category_averages = {category: np.mean([np.mean(subcat) for subcat in subcategories.values()]) 
-                         for category, subcategories in scores.items()}
+    category_averages = {
+        category: np.mean([np.mean(subcat) for subcat in subcategories.values()])
+        for category, subcategories in scores.items()
+    }
 
     # Calculate average scores for each subcategory
     subcategory_averages = {
@@ -268,83 +270,140 @@ def classify_system(scores):
         for category, subcategories in scores.items()
     }
 
-    # Classification Logic (Modify these thresholds based on your framework)
-    if category_averages.get("Core Digital Twin Characteristics", 0) > 3.5 and \
-        subcategory_averages.get("Connectivity and Synchronization", {}).get("Physical-to-Virtual Connection", 0)> 3.5 and \
-        subcategory_averages.get("Connectivity and Synchronization", {}).get("Virtual-to-Physical Feedback", 0)>= 3 and \
-        scores["Connectivity and Synchronization"]["Synchronization"][0] > 3 and \
-        scores["Connectivity and Synchronization"]["Synchronization"][1] > 3 and \
-        scores["Connectivity and Synchronization"]["Synchronization"][2] > 2 and \
-       category_averages.get("Modeling, Simulation and Decision Support", 0) > 3.5:
+    # 1. Digital Twin
+    if (
+        category_averages.get("Caractéristiques principales du jumeau numérique", 0) > 3.5
+        and subcategory_averages.get("Connectivité et Synchronisation", {}).get("Connexion Physique-Virtuelle", 0) > 3.5
+        and subcategory_averages.get("Connectivité et Synchronisation", {}).get("Retour d'Information Virtuel-Physique", 0) >= 3
+        and scores["Connectivité et Synchronisation"]["Synchronisation"][0] > 3
+        and scores["Connectivité et Synchronisation"]["Synchronisation"][1] > 3
+        and scores["Connectivité et Synchronisation"]["Synchronisation"][2] > 2
+        and category_averages.get("Modélisation, Simulation et Aide à la Décision", 0) > 3.5
+    ):
         classification = "Digital Twin"
-        explanation = "Your system qualifies as a Digital Twin because it meets mandatory characteristics in terms of connectivity, synchronization, and decision support."
+        explanation = (
+            "Votre système est qualifié de Jumeau Numérique car il répond aux caractéristiques "
+            "obligatoires en termes de connectivité, de synchronisation et de support à la décision."
+        )
         image_path = "images/digital_twin.png"
 
-    elif category_averages.get("Core Digital Twin Characteristics", 0) > 3 and \
-         subcategory_averages.get("Connectivity and Synchronization", {}).get("Physical-to-Virtual Connection", 0)> 3.5 and \
-         subcategory_averages.get("Connectivity and Synchronization", {}).get("Virtual-to-Physical Feedback", 0) < 2 and \
-         scores["Connectivity and Synchronization"]["Synchronization"][0] > 3 and \
-         scores["Connectivity and Synchronization"]["Synchronization"][2] > 2 and \
-        category_averages.get("Modeling, Simulation and Decision Support", 0) > 3.5:
+    # 2. Digital Shadow
+    elif (
+        category_averages.get("Caractéristiques principales du jumeau numérique", 0) > 3
+        and subcategory_averages.get("Connectivité et Synchronisation", {}).get("Connexion Physique-Virtuelle", 0) > 3.5
+        and subcategory_averages.get("Connectivité et Synchronisation", {}).get("Retour d'Information Virtuel-Physique", 0) < 2
+        and scores["Connectivité et Synchronisation"]["Synchronisation"][0] > 3
+        and scores["Connectivité et Synchronisation"]["Synchronisation"][2] > 2
+        and category_averages.get("Modélisation, Simulation et Aide à la Décision", 0) > 3.5
+    ):
         classification = "Digital Shadow"
-        explanation = "Your system is a Digital Shadow because it focuses on data collection and visualization for simulation and decision making but lacks real-time feedback and control. it can be useful for analysis and situational decision making as it remains an accurate representation of the physical twin."
+        explanation = (
+            "Votre système est un Ombre Numérique car il se concentre sur la collecte et la "
+            "visualisation des données pour la simulation et la prise de décision, mais il manque "
+            "de rétroaction et de contrôle en temps réel. Il peut être utile pour l'analyse et la "
+            "prise de décision contextuelle, car il reste une représentation fidèle du jumeau physique."
+        )
         image_path = "images/digital_shadow.png"
 
-    elif category_averages.get("Core Digital Twin Characteristics", 0) > 3 and \
-         subcategory_averages.get("Connectivity and Synchronization", {}).get("Physical-to-Virtual Connection", 0)< 2 and \
-         subcategory_averages.get("Connectivity and Synchronization", {}).get("Virtual-to-Physical Feedback", 0) < 2 and \
-         subcategory_averages.get("Connectivity and Synchronization", {}).get("Synchronization", 0) < 2 and \
-        category_averages.get("Modeling, Simulation and Decision Support", 0) > 3.5:
+    # 3. Digital Model
+    elif (
+        category_averages.get("Caractéristiques principales du jumeau numérique", 0) > 3
+        and subcategory_averages.get("Connectivité et Synchronisation", {}).get("Connexion Physique-Virtuelle", 0) < 2
+        and subcategory_averages.get("Connectivité et Synchronisation", {}).get("Retour d'Information Virtuel-Physique", 0) < 2
+        and subcategory_averages.get("Connectivité et Synchronisation", {}).get("Synchronisation", 0) < 2
+        and category_averages.get("Modélisation, Simulation et Aide à la Décision", 0) > 3.5
+    ):
         classification = "Digital model"
-        explanation = "Your system is a Digital model because it lacks both real-time synchronisation and feedback. it can be useful for situational decision-making but will need a lot of maintenance as it doesn't evolve or relate to the real world physical entity it represents."
+        explanation = (
+            "Votre système est un Modèle Numérique car il manque à la fois de synchronisation en "
+            "temps réel et de rétroaction. Il peut être utile pour la prise de décision contextuelle, "
+            "mais nécessitera un entretien important puisqu'il n'évolue pas et n'interagit pas avec "
+            "l'entité physique réelle qu'il représente."
+        )
         image_path = "images/digital_model.png"
 
-    elif category_averages.get("Core Digital Twin Characteristics", 0) < 3 and \
-         subcategory_averages.get("Connectivity and Synchronization", {}).get("Physical-to-Virtual Connection", 0)> 3 and \
-         subcategory_averages.get("Connectivity and Synchronization", {}).get("Virtual-to-Physical Feedback", 0)> 3 and \
-         subcategory_averages.get("Connectivity and Synchronization", {}).get("Synchronization", 0)> 3 and \
-        category_averages.get("Modeling, Simulation and Decision Support", 0)< 2:
+    # 4. Cyber-Physical System
+    elif (
+        category_averages.get("Caractéristiques principales du jumeau numérique", 0) < 3
+        and subcategory_averages.get("Connectivité et Synchronisation", {}).get("Connexion Physique-Virtuelle", 0) > 3
+        and subcategory_averages.get("Connectivité et Synchronisation", {}).get("Retour d'Information Virtuel-Physique", 0) > 3
+        and subcategory_averages.get("Connectivité et Synchronisation", {}).get("Synchronisation", 0) > 3
+        and category_averages.get("Modélisation, Simulation et Aide à la Décision", 0) < 2
+    ):
         classification = "Cyber-Physical System"
-        explanation = "Your system is classified as a Cyber-Physical System because it focuses on integrating physical and digital components without full twin capabilities. the system has some digital representation but might not be fully detailed. when it comes to Connectivity and Synchronization, Relatively high scores are expected, especially if the system integrates well with sensors and data flows. Finally, lower scores are expected when it comes to modeling as the system doesn’t offer full simulation or proactive decision-making "
+        explanation = (
+            "Votre système est classé comme un Système Cyber-Physique car il met l'accent sur "
+            "l'intégration des composants physiques et numériques sans posséder pleinement les "
+            "capacités d’un jumeau numérique. Il dispose d'une certaine représentation numérique, "
+            "mais elle pourrait ne pas être complète. Concernant la connectivité et la synchronisation, "
+            "des scores relativement élevés sont attendus, notamment si le système s'intègre bien avec "
+            "des capteurs et des flux de données. En revanche, des scores plus faibles sont attendus "
+            "en matière de modélisation, car le système ne propose pas de simulation complète ni de "
+            "prise de décision proactive."
+        )
         image_path = "images/cyber_physical.jpg"
 
-    elif scores["Core Digital Twin Characteristics"]["Physical Entity"][0] > 3 and \
-         scores["Core Digital Twin Characteristics"]["Physical Entity"][1] > 3 and \
-         scores["Core Digital Twin Characteristics"]["Virtual Entity"][0] > 3 and \
-         scores["Core Digital Twin Characteristics"]["Virtual Entity"][1] > 3 and \
-         subcategory_averages.get("Connectivity and Synchronization", {}).get("Physical-to-Virtual Connection", 0)< 2 and \
-         subcategory_averages.get("Connectivity and Synchronization", {}).get("Virtual-to-Physical Feedback", 0)< 2 and \
-         subcategory_averages.get("Connectivity and Synchronization", {}).get("Synchronization", 0)< 2  and \
-        category_averages.get("Modeling, Simulation and Decision Support", 0)< 2:
+    # 5. 3D Models & CAD
+    elif (
+        scores["Caractéristiques principales du jumeau numérique"]["Système Physique"][0] > 3
+        and scores["Caractéristiques principales du jumeau numérique"]["Système Physique"][1] > 3
+        and scores["Caractéristiques principales du jumeau numérique"]["Copie Virtuelle"][0] > 3
+        and scores["Caractéristiques principales du jumeau numérique"]["Copie Virtuelle"][1] > 3
+        and subcategory_averages.get("Connectivité et Synchronisation", {}).get("Connexion Physique-Virtuelle", 0) < 2
+        and subcategory_averages.get("Connectivité et Synchronisation", {}).get("Retour d'Information Virtuel-Physique", 0) < 2
+        and subcategory_averages.get("Connectivité et Synchronisation", {}).get("Synchronisation", 0) < 2
+        and category_averages.get("Modélisation, Simulation et Aide à la Décision", 0) < 2
+    ):
         classification = "3D Models & CAD"
-        explanation = "Your system is primarily a 3D Model or CAD representation, focusing on visualization rather than real-time integration."
+        explanation = (
+            "Votre système est principalement une représentation 3D ou un modèle CAO, axé sur "
+            "la visualisation plutôt que sur l'intégration en temps réel."
+        )
         image_path = "images/3d_model.webp"
 
-    elif category_averages.get("Data Management and Integration", 0) > 3 and \
-         category_averages.get("Core Digital Twin Characteristics", 0) >  3 and \
-         subcategory_averages.get("Connectivity and Synchronization", {}).get("Physical-to-Virtual Connection", 0) > 3 and \
-         subcategory_averages.get("Connectivity and Synchronization", {}).get("Virtual-to-Physical Feedback", 0) < 2 and \
-         subcategory_averages.get("Connectivity and Synchronization", {}).get("Synchronization", 0)< 3 and \
-         category_averages.get("Modeling, Simulation and Decision Support", 0) < 2:
+    # 6. Digital Thread
+    elif (
+        category_averages.get("Gestion et Intégration des Données", 0) > 3
+        and category_averages.get("Caractéristiques principales du jumeau numérique", 0) > 3
+        and subcategory_averages.get("Connectivité et Synchronisation", {}).get("Connexion Physique-Virtuelle", 0) > 3
+        and subcategory_averages.get("Connectivité et Synchronisation", {}).get("Retour d'Information Virtuel-Physique", 0) < 2
+        and subcategory_averages.get("Connectivité et Synchronisation", {}).get("Synchronisation", 0) < 3
+        and category_averages.get("Modélisation, Simulation et Aide à la Décision", 0) < 2
+    ):
         classification = "Digital Thread"
-        explanation = "Your system aligns with the concept of a Digital Thread, integrating lifecycle data but lacking simulation and autonomous decision-making."
+        explanation = (
+            "Votre système s'aligne avec le concept de Fil Numérique, intégrant des données sur "
+            "le cycle de vie, mais manquant de simulation et de prise de décision autonome."
+        )
         image_path = "images/digital_thread.jpeg"
 
-    elif scores["Core Digital Twin Characteristics"]["Physical Entity"][0] >= 2 and \
-         scores["Core Digital Twin Characteristics"]["Physical Entity"][1] >= 2 and \
-         scores["Core Digital Twin Characteristics"]["Virtual Entity"][0] > 3 and \
-         scores["Core Digital Twin Characteristics"]["Virtual Entity"][1] > 3 and \
-         subcategory_averages.get("Connectivity and Synchronization", {}).get("Physical-to-Virtual Connection", 0)>3 and \
-         subcategory_averages.get("Connectivity and Synchronization", {}).get("Virtual-to-Physical Feedback", 0)< 2 and \
-         subcategory_averages.get("Connectivity and Synchronization", {}).get("Synchronization", 0)> 2  and \
-        category_averages.get("Modeling, Simulation and Decision Support", 0)< 2:
+    # 7. IoT or SCADA
+    elif (
+        scores["Caractéristiques principales du jumeau numérique"]["Système Physique"][0] >= 2
+        and scores["Caractéristiques principales du jumeau numérique"]["Système Physique"][1] >= 2
+        and scores["Caractéristiques principales du jumeau numérique"]["Copie Virtuelle"][0] > 3
+        and scores["Caractéristiques principales du jumeau numérique"]["Copie Virtuelle"][1] > 3
+        and subcategory_averages.get("Connectivité et Synchronisation", {}).get("Connexion Physique-Virtuelle", 0) > 3
+        and subcategory_averages.get("Connectivité et Synchronisation", {}).get("Retour d'Information Virtuel-Physique", 0) < 2
+        and subcategory_averages.get("Connectivité et Synchronisation", {}).get("Synchronisation", 0) > 2
+        and category_averages.get("Modélisation, Simulation et Aide à la Décision", 0) < 2
+    ):
         classification = "IoT or SCADA"
-        explanation = "Your system fits into the IoT or SCADA category due to its strong reliance on data collection from sensors, without full Digital Twin intelligence. It lacks simulation modules, calculation engines or autonomy to interact with the physical entity."
+        explanation = (
+            "Votre système correspond à la catégorie IoT ou SCADA en raison de sa forte dépendance "
+            "à la collecte de données via des capteurs, sans intelligence complète de Jumeau Numérique. "
+            "Il ne possède pas de modules de simulation, de moteurs de calcul ou d’autonomie pour "
+            "interagir avec l'entité physique."
+        )
         image_path = "images/iot_scada.png"
 
+    # 8. Other / Not a Digital Twin
     else:
         classification = "Other / Not a Digital Twin"
-        explanation = "Your system does not meet the core characteristics of a Digital Twin but may belong to another digital technology category."
+        explanation = (
+            "Votre système ne répond pas aux caractéristiques fondamentales d'un Jumeau Numérique, "
+            "mais peut appartenir à une autre catégorie de technologies numériques."
+        )
         image_path = "images/other.png"
 
     return classification, explanation, image_path
@@ -355,181 +414,181 @@ def classify_system(scores):
 ## Defenitly need to revisit this article for further questions : Digital Twins: A Maturity Model for Their Classification and Evaluation
 
 evaluation_framework = {
-    "Core Digital Twin Characteristics": {
-        "description": "Digital Twins are virtual representations of physical entities, enabling seamless bi-directional data exchange for real-time monitoring, simulation, and decision-making. The core Digital Twin components are the physical entity, the virtual copy and the data transfer linking them to one another.",
+    "Caractéristiques principales du jumeau numérique": {
+        "description": "Les Jumeaux Numériques sont des représentations virtuelles d'objets, systèmes ou processus physiques, permettant un échange bidirectionnel de données pour la supérvision en temps réel, la simulation et la prise de décision. Les composants clés d'un Jumeau Numérique sont le système physique, sa copie virtuelle et le transfert de données qui les relie.",
         "subcategories": [
             {
-                "subcategory": "Physical Entity",
+                "subcategory": "Système Physique",
                 "questions": [
-                    {"question": "How clearly is the real-world physical entity defined?", "type": "fuzzy"},
-                    {"question": "How clearly are the entity’s boundaries and hierarchical levels specified regarding the purpose of the system?", "type": "fuzzy"},
-                    {"question": "How well are physical and environmental parameters (e.g., temperature, pressure, operational context) influencing the physical system identified?", "type": "fuzzy"}
+                    {"question": "Dans quelle mesure le périmètre du système physique (ex. : entrepôt, supply chain) est-il bien défini ? ", "type": "fuzzy"},
+                    {"question": "Dans quelle mesure les différentes composantes du système (ex. : équipements, processus) sont-elles clairement identifiées et organisées selon leur rôle dans le WMS ?", "type": "fuzzy"},
+                    {"question": "Dans quelle mesure les conditions physiques (ex. : température, pression, environnement opérationnel) qui influencent l’entrepôt sont-elles bien accessible sur le WMS ?", "type": "fuzzy"}
                 ]
             },
             {
-                "subcategory": "Virtual Entity",
+                "subcategory": "Copie Virtuelle",
                 "questions": [
-                    {"question": "How accurately does the virtual system represent the physical entity within its specific application context?", "type": "fuzzy"},
-                    {"question": "Is the representation granular enough to capture detailed interactions and changes relevant to the system’s main objective (geometry, behavior, and functional rules)?", "type": "fuzzy"},
-                    {"question": "Does the system include an intuitive user interface for interaction, access, analysis and experiment run?", "type": "fuzzy"}
+                    {"question": "Le WMS représente-t-il fidèlement l’entrepôt et ses opérations ?", "type": "fuzzy"},
+                    {"question": "Le niveau de détail est-il suffisant pour suivre et comprendre les flux logistiques et les interactions entre les composants de l'entrepôt ?", "type": "fuzzy"},
+                    {"question": "Le WMS comprend-il une interface utilisateur intuitive pour permettre le pilotage de l'activité, l'accès aux données, l’analyse et l’interaction ou l’exécution d’expériences ?", "type": "fuzzy"}
                 ]
             }
         ]
     },
-    "Connectivity and Synchronization": {
-        "description": "A fundamental feature of Digital Twins is their ability to maintain dynamic, bi-directional connections between physical and virtual entities. This involves ensuring synchronization through real-time or near-real-time data flows to support operational and strategic objectives, followed by the ability of the system to react and interact with the physical entity when needed (Whitin its application scope).",
+    "Connectivité et Synchronisation": {
+        "description": "Une caractéristique fondamentale des Jumeaux Numériques est leur capacité à maintenir des connexions dynamiques et bidirectionnelles entre les entités physiques et virtuelles. Cela implique d'assurer la synchronisation via des flux de données en temps réel ou quasi réel pour soutenir les objectifs opérationnels et stratégiques, ainsi que la capacité du système à réagir et interagir avec l'entité physique lorsque nécessaire (dans son périmètre d'application).",
         "subcategories": [
             {
-                "subcategory": "Physical-to-Virtual Connection",
+                "subcategory": "Connexion Physique-Virtuelle",
                 "questions": [
-                    {"question": "How automated is the process of transmitting data from the physical entity to the virtual system?", "type": "fuzzy"},
-                    {"question": "How often is the data transmitted from the physical to the virtual system? (1= never and 5= real time)", "type": "fuzzy"},
-                    {"question": "How well is the system integrated with other relevant systems (e.g., within a cloud environment, ERP, MES, IoT) (1= no integration and 5= autonomous communication with other systems)?", "type": "fuzzy"}
+                    {"question": "Dans quelle mesure la mise à jour des données d'activité de l'entrepôt vers le WMS sont-elles automatisées ?", "type": "fuzzy"},
+                    {"question": "À quelle fréquence les données d'activité de l'entrepôt sont-elles envoyées au WMS ? (1 = jamais, 5 = en temps réel)", "type": "fuzzy"},
+                    {"question": "Dans quelle mesure Le WMS est-il (peut il être) bien connecté aux autres outils numériques de l'entrepôt (ex. : SAP, capteurs IoT, cloud) ? (1 = aucune interopérabilité, 5 = communication avec d'autres outils)", "type": "fuzzy"}
                 ]
             },
             {
-                "subcategory": "Virtual-to-Physical Feedback",
+                "subcategory": "Retour d'Information Virtuel-Physique",
                 "questions": [
-                    {"question": "Is there a mechanism for real-time decision-making that optimizes physical operations?", "type": "fuzzy"},
-                    {"question": "How seamlessly, within the scope of the system application, can it initiate  actions in the physical entity? (1= no reaction possible, 5= sending control commands or notifications to humans in the loop)", "type": "fuzzy"}
+                    {"question": "Un WMS peut-il prendre des décisions en temps réel pour optimiser les opérations de l’entrepôt ?", "type": "fuzzy"},
+                    {"question": "Dans quelle mesure un WMS peut-il déclencher automatiquement des actions dans l’entrepôt (ex. : Lancement de préparation, ajustement des stocks, guidage les opérateurs, alert en cas d’anomalie) ? (1 = aucune réaction possible, 5 = envoi de commandes de contrôle ou notifications aux opérateurs)", "type": "fuzzy"}
                 ]
             },
             {
-                "subcategory": "Synchronization",
+                "subcategory": "Synchronisation",
                 "questions": [
-                    {"question": "Is the method for connecting the physical and virtual components (e.g., sensors, IoT devices, cloud computing) clearly defined?", "type": "fuzzy"},
-                    {"question": "How well does the synchronization interval match the requirements for decision-making?", "type": "fuzzy"},
-                    {"question": "How effectively does the system reflect historical, current, and predicted states of the physical entity?", "type": "fuzzy"}
-                ]
-            },
-        ]
-    },
-    "Modeling, Simulation and Decision Support": {
-        "description": "Digital Twins enable predictive and prescriptive capabilities through scomputational engines, providing actionable insights and optimization strategies. These capabilities align with transitioning decision-making from reactive to proactive processes.",
-        "subcategories": [
-            {
-                "subcategory": "Modeling and What-If Scenarios",
-                "questions": [
-                    {"question": "Does the system have a computational engine to support simulation and decision-making?", "type": "fuzzy"},
-                    {"question": "Can the system evaluate 'what-if' scenarios for varying operational settings?", "type": "fuzzy"}
-                ]
-            },
-            {
-                "subcategory": "Optimization and Decision Making",
-                "questions": [
-                    {"question": "can optimization algorithms be applied to improve performance metrics (e.g., logistics, costs, sustainability)?", "type": "fuzzy"},
-                    {"question": "Can the system provide actionable insights to humans in the loop?", "type": "fuzzy"}
+                    {"question": "La méthode de connexion entre l’entrepôt physique et le WMS est-elle bien définie (ex. : PDA, capteurs, infrastructure IT et matériel) ?", "type": "fuzzy"},
+                    {"question": "Le délai de mise à jour des données est-il adapté aux besoins opérationnels du WMS et aux exigences de la prise de décision en entrepôt?", "type": "fuzzy"},
+                    {"question": "Le WMS permet-il d’analyser l’historique, l’état actuel et les prévisions des opérations ?", "type": "fuzzy"}
                 ]
             }
         ]
     },
-    "Data Management and Integration": {
-        "description": "Digital Twins depend on robust data collection, integration, and processing frameworks to ensure seamless real-time operations. This includes IoT devices, cloud/edge computing, and compatibility with enterprise systems.",
+    "Modélisation, Simulation et Aide à la Décision": {
+        "description": "Les Jumeaux Numériques permettent des capacités prédictives et prescriptives grâce à des moteurs de calcul, fournissant des analyses exploitables et des stratégies d'optimisation. Ces capacités facilitent la transition de la prise de décision réactive à proactive.",
         "subcategories": [
             {
-                "subcategory": "System Integration",
+                "subcategory": "Modélisation et Scénarios Prospectifs",
                 "questions": [
-                    {"question": "How effectively does the system integrate multi-modal data (structured vs. unstructured, historical vs. real-time)?", "type": "fuzzy"},
-                    {"question": "Can the system handle increasing data volumes and expanding functionalities seamlessly?", "type": "fuzzy"}
+                    {"question": "Le WMS dispose-t-il d'un moteur de calcul ou de simulation pour tester différents scénarios et optimiser les décisions ?", "type": "fuzzy"},
+                    {"question": "Le WMS peut-il simuler des situations hypothétiques (ex. : pic d’activité, perturbations, changements de stock) ?", "type": "fuzzy"}
                 ]
             },
             {
-                "subcategory": "Data Fusion Collection and Processing",
+                "subcategory": "Optimisation et Prise de Décision",
                 "questions": [
-                    {"question": "How well can data heterogeneity be managed (handling different formats, resolutions, or sources)?", "type": "fuzzy"},
-                    {"question": "To what extent are multiple data sources (sensor data, static data, predictive outputs) fused for comprehensive insights? ", "type": "fuzzy"}
+                    {"question": "Le WMS peut-il appliquer des algorithmes pour améliorer la gestion des stocks, les flux logistiques ou l’efficacité énergétique ?", "type": "fuzzy"},
+                    {"question": "Le WMS fournit-il des recommandations claires aux opérateurs ou gestionnaires d’entrepôt ?", "type": "fuzzy"}
                 ]
             }
         ]
     },
-    "Learning, Adaptability and Autonomy": {
-        "description": "A mature Digital Twin leverages AI and machine learning to self-improve, recognize context changes, and adapt its models autonomously. This adaptability ensures scalability and relevance throughout its lifecycle.",
+    "Gestion et Intégration des Données": {
+        "description": "Les Jumeaux Numériques reposent sur des infrastructures robustes de collecte, d'intégration et de traitement des données pour assurer des opérations en temps réel fluides. Cela inclut les dispositifs IoT, l'informatique en cloud/edge et la compatibilité avec les systèmes d'entreprise.",
         "subcategories": [
             {
-                "subcategory": "Context Awareness",
+                "subcategory": "Intégration Systémique",
                 "questions": [
-                    {"question": "How dynamically does the system recognize environmental changes?", "type": "fuzzy"},
-                    {"question": "How well does the system incorporate component interactions, disruptions, and uncertainties into its models?", "type": "fuzzy"}
+                    {"question": "Le WMS gère-t-il efficacement différents types de données (temps réel vs historiques, structurées vs non structurées) ?", "type": "fuzzy"},
+                    {"question": "Le WMS peut-il évoluer et gérer des volumes de données croissants ?", "type": "fuzzy"}
                 ]
             },
             {
-                "subcategory": "Learning Capabilities",
+                "subcategory": "Collecte et Traitement des Données",
                 "questions": [
-                    {"question": "How advanced is the system’s self-learning capability? (1 = No intelligence, 5 = Fully autonomous learning)", "type": "fuzzy"},
-                    {"question": "To what extent does AI/ML contribute to predicting, analyzing, and optimizing performance?", "type": "fuzzy"},
-                    {"question": "How interpretable and explainable are the system’s decisions?", "type": "fuzzy"}
-                ]
-            },
-            {
-                "subcategory": "Adaptability and Evolution",
-                "questions": [
-                    {"question": "How scalable is the system in integrating new equipment, functionalities, or processes?", "type": "fuzzy"},
-                    {"question": "To what extent is the system applicable throughout its physical counterpart’s lifecycle?", "type": "fuzzy"},
-                ]
-            },
-                        {
-                "subcategory": "Autonomy",
-                "questions": [
-                    {"question": "How capable is the system of updating itself (e.g., its logic and parameters) without external intervention?", "type": "fuzzy"},
-                    {"question": "How well can the system independently make and execute decisions within its predefined application scope?", "type": "fuzzy"}
+                    {"question": "Dans quelle mesure le WMS gère-t-il bien différents formats et sources de données (ex. : fichiers Excel, images, bases de données, capteurs) ?", "type": "fuzzy"},
+                    {"question": "Le WMS utilise-t-il plusieurs sources d’information pour une meilleure analyse des opérations ?", "type": "fuzzy"}
                 ]
             }
         ]
     },
-    "Fidelity and Validation": {
-        "description": "Digital Twins aim for high-fidelity representations while balancing computational efficiency. Validation ensures their trustworthiness and alignment with physical behaviors, critical for stakeholder confidence.",
+    "Apprentissage, Adaptabilité et Autonomie": {
+        "description": "Un Jumeau Numérique mature exploite l'intelligence artificielle et l'apprentissage automatique pour s'améliorer, reconnaître les changements de contexte et adapter ses modèles de manière autonome. Cette adaptabilité garantit la scalabilité et la pertinence du système tout au long de son cycle de vie.",
         "subcategories": [
             {
-                "subcategory": "Abstrction Level",
+                "subcategory": "Connaissance du Contexte",
                 "questions": [
-                    {"question": "How well does the results of the system’s computational engine correspond to the actual behavior of the physical system (given the same stimuli)?", "type": "fuzzy"},
-                    {"question": "How reproductible is the system’s behavior (given the same inputs)?", "type": "fuzzy"}
+                    {"question": "Le WMS détecte-t-il automatiquement les changements dans l’environnement de l’entrepôt ?", "type": "fuzzy"},
+                    {"question": "Dans quelle mesure le WMS prend-il en compte les interactions entre équipements, les événements imprévus et les incertitudes ?", "type": "fuzzy"}
                 ]
             },
             {
-                "subcategory": "Verification and Feedback",
+                "subcategory": "Capacités d'Apprentissage",
                 "questions": [
-                    {"question": "How comprehensively rigorous is the system’s verification process (e.g., testing, sensitivity analysis, real-world comparisons)?", "type": "fuzzy"},
-                    {"question": "How effectively are real-world outcomes used for system adjustment and refinement?", "type": "fuzzy"}
+                    {"question": "Le WMS est-il capable d’apprendre de ses propres expériences, des données et de s’améliorer avec le temps ? (1 = Aucune intelligence, 5 = Apprentissage entièrement autonome)", "type": "fuzzy"},
+                    {"question": "Dans quelle mesure Le système utilise-t-il l’IA ou l’apprentissage automatique pour optimiser la gestion de l’entrepôt ?", "type": "fuzzy"},
+                    {"question": "Dans quelle mesure Les décisions du WMS sont-elles claires et compréhensibles pour les opérateurs ? (1 = Pas de décision, 5 = Décisions avec raisonnement logique)", "type": "fuzzy"}
+                ]
+            },
+            {
+                "subcategory": "Adaptabilité et Évolution",
+                "questions": [
+                    {"question": "Le WMS peut-il facilement intégrer de nouveaux équipements, technologies ou processus logistiques ?", "type": "fuzzy"},
+                    {"question": "Le WMS peut il être utilisé tout au long du cycle de vie de l’entrepôt ?", "type": "fuzzy"}
+                ]
+            },
+            {
+                "subcategory": "Autonomie",
+                "questions": [
+                    {"question": "Dans quelle mesure le WMS est-il capable d’analyser des situations ? (1 = Aucune analyse, 5 = Analyse de cas concret pour prise de décision) ", "type": "fuzzy"},
+                    {"question": "Le WMS peut-il prendre et exécuter des décisions de manière autonome dans son périmètre d'application défini ? (1 = Lancement manuel à travers le WMS, 5 = Execution automatique après paramétrage)", "type": "fuzzy"}
                 ]
             }
         ]
     },
-    "Digital Twin Services": {
-        "description": "The functional utility of Digital Twins is measured by their service capabilities, such as real-time monitoring, predictive maintenance, and operational optimization, aimed at enhancing the system's performance and resilience.",
+    "Fidélité et Validation": {
+        "description": "Les Jumeaux Numériques visent des représentations haute-fidélité tout en maintenant une efficacité computationnelle optimale. La validation garantit leur fiabilité et leur alignement avec les comportements physiques, ce qui est essentiel pour la confiance des parties prenantes.",
         "subcategories": [
             {
-                "subcategory": "Real-Time Monitoring",
+                "subcategory": "Niveau d'Abstraction",
                 "questions": [
-                    {"question": "How effectively does the system monitor key metrics (e.g., energy consumption, performance, errors) in real-time?", "type": "fuzzy"},
-                    {"question": "How portable is the system across various devices and platforms?", "type": "fuzzy"}
+                    {"question": "Les calculs (ou simulations) du WMS correspondent-elles au comportement réel de l’entrepôt ? (face aux mêmes stimuli) ?", "type": "fuzzy"},
+                    {"question": "Le WMS donne-t-il des résultats reproductibles avec les mêmes données d’entrée ?", "type": "fuzzy"}
                 ]
             },
             {
-                "subcategory": "Optimization and Forcasting",
+                "subcategory": "Vérification et Retour d'Information",
                 "questions": [
-                    {"question": "How capable is the system of forecasting future states and emergency events?", "type": "fuzzy"},
-                    {"question": "Does the system enable predictive analytics?", "type": "fuzzy"},
-                    {"question": "Does the system provide prescriptive analytics?", "type": "fuzzy"}
+                    {"question": "Le WMS est-il régulièrement testé et comparé aux performances réelles ?(ex. : tests, analyses de sensibilité, comparaisons avec le monde réel)", "type": "fuzzy"},
+                    {"question": "Les données de l'entrepôt sont-elles utilisées pour affiner et améliorer le WMS ?", "type": "fuzzy"}
                 ]
             }
         ]
     },
-    "Technological Readiness": {
-        "description": "The deployment of Digital Twins depends on the integration of advanced technologies such as IoT, cloud computing, AI/ML, and ensuring cybersecurity. Scalability and compliance with privacy standards are also critical considerations.",
+    "Services du Jumeau Numérique": {
+        "description": "L'utilité fonctionnelle des Jumeaux Numériques se mesure à travers leurs capacités de service, telles que la surveillance en temps réel, la maintenance prédictive et l'optimisation opérationnelle, visant à améliorer la performance et la résilience du système.",
         "subcategories": [
             {
-                "subcategory": "Enabling Technologies",
+                "subcategory": "Surveillance en Temps Réel",
                 "questions": [
-                    {"question": "To what extent are advanced technologies (e.g., IoT, cloud/edge computing, AI/ML, big data, 5G) integrated into the system (regarding its application and scope)?", "type": "fuzzy"},
-                    {"question": "Does the platform allow domain experts to operate the system without needing deep technical support expertise?", "type": "fuzzy"}
+                    {"question": "Le WMS permet-il un suivi en temps réel des indicateurs clés (ex. : performance, consommation d’énergie, erreurs) ?", "type": "fuzzy"},
+                    {"question": "Le WMS est-il accessible et utilisable sur différents appareils et plateformes (ex. : PC, mobile, tablette) ?", "type": "fuzzy"}
                 ]
             },
             {
-                "subcategory": "Security and Privacy",
+                "subcategory": "Optimisation et Prédiction",
                 "questions": [
-                    {"question": "To what extent does the system reliably prevent unauthorized access to data?", "type": "fuzzy"},
-                    {"question": "How robust are the protective measures in place to guarantee data privacy?", "type": "fuzzy"}
+                    {"question": "Le WMS peut-il anticiper des tendances ou événements impactant l’entrepôt (ex. : pics d’activité, pannes) ?", "type": "fuzzy"},
+                    {"question": "Dans quelle mesure le WMS intègre-t-il des outils d’analyse prédictive pour améliorer la gestion de l’entrepôt ?", "type": "fuzzy"},
+                    {"question": "Dans quelle mesure le WMS propose-t-il des recommandations automatisées pour optimiser les opérations ? ", "type": "fuzzy"}
+                ]
+            }
+        ]
+    },
+    "Maturité Technologique": {
+        "description": "Le déploiement des Jumeaux Numériques repose sur l'intégration de technologies avancées telles que l'IoT, l'informatique en cloud, l'IA/l'apprentissage automatique et la cybersécurité. La scalabilité et la conformité aux normes de protection des données sont également des considérations essentielles.",
+        "subcategories": [
+            {
+                "subcategory": "Technologies Facilitatrices",
+                "questions": [
+                    {"question": "Le WMS intègre-t-il des technologies avancées comme l’IoT, le cloud computing ou l’IA ? ", "type": "fuzzy"},
+                    {"question": "Le WMS est-il accessible aux experts métier sans nécessiter une expertise technique approfondie en programmation ? ", "type": "fuzzy"}
+                ]
+            },
+            {
+                "subcategory": "Sécurité et Confidentialité",
+                "questions": [
+                    {"question": "Dans quelle mesure le WMS empêche-t-il les accès non autorisés ?", "type": "fuzzy"},
+                    {"question": "Le WMS applique-t-il des mesures robustes pour garantir la confidentialité des données ?", "type": "fuzzy"}
                 ]
             }
         ]
@@ -579,40 +638,39 @@ def profile_identification():
             "department": "",
             "comments": ""
         }
-
-    # Populate fields with existing session state values
-    st.write("Before we dive in, let us know each other a little bit 🙂. The results of this questionnaire are to be collected for research purposes.")
+    
+    # Remplir les champs avec les valeurs existantes de l'état de session
+    st.write("Avant de commencer, apprenons à mieux nous connaître 🙂 Les résultats de ce questionnaire seront collectés de manière anonyme à des fins de recherche.")
     st.session_state["profile_data"]["field_of_work"] = st.radio(
-        "What is your field of work?", 
-        ["Research", "Industry"], 
-        index=["Research", "Industry"].index(st.session_state["profile_data"].get("field_of_work", "Research"))
+        "Quel est votre domaine d'activité ?", 
+        ["Recherche", "Industrie", "logistique et supply chain"], 
+        index=["Recherche", "Industrie", "logistique et supply chain"].index(st.session_state["profile_data"].get("field_of_work", "Recherche"))
     )
     st.session_state["profile_data"]["years_experience"] = st.slider(
-        "How many years have you worked on Information Systems (IS) or Warehouse Management Systems (WMS)?", 
+        "Depuis combien d'années travaillez-vous sur les Systèmes d'Information (SI) ou les Systèmes de Gestion d'Entrepôt (WMS) ?", 
         0, 50, step=1, 
         value=st.session_state["profile_data"].get("years_experience", 0)
     )
     st.session_state["profile_data"]["current_system"] = st.text_input(
-        "What is the name of the IS or WMS you use (if any)?", 
+        "Quel est le nom du SI ou du WMS que vous utilisez (si applicable) ?", 
         value=st.session_state["profile_data"].get("current_system", "")
     )
     st.session_state["profile_data"]["position"] = st.text_input(
-        "What is your current position?", 
+        "Quel est votre poste actuel ?", 
         value=st.session_state["profile_data"].get("position", "")
     )
     st.session_state["profile_data"]["country"] = st.text_input(
-        "Which country are you based in?", 
+        "Dans quel pays êtes-vous basé(e) ?", 
         value=st.session_state["profile_data"].get("country", "")
     )
     st.session_state["profile_data"]["department"] = st.text_input(
-        "What department are you affiliated with (e.g., R&D, Logistics)?", 
+        "À quel département êtes-vous rattaché(e) (ex. : R&D, Logistique) ?", 
         value=st.session_state["profile_data"].get("department", "")
     )
     st.session_state["profile_data"]["comments"] = st.text_area(
-        "Any additional comments or insights you would like to share?", 
+        "Avez-vous des commentaires ou des remarques supplémentaires à partager ?", 
         value=st.session_state["profile_data"].get("comments", "")
     )
-
     return st.session_state["profile_data"]
 
 # Radar Chart Function using Plotly
@@ -655,13 +713,13 @@ if "profile_data" not in st.session_state:
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-# Validation function
+# Fonction de validation
 def validate_all_answers():
-    """Ensure all questions are answered by checking for None values."""
+    """Vérifie que toutes les questions sont complétées en recherchant des valeurs None."""
     for category, subcategories in st.session_state.scores.items():
         for subcat, answers in subcategories.items():
-            if None in answers:  # Check for uninitialized (None) values
-                return False, f"Please complete all questions in '{category}' - '{subcat}'."
+            if None in answers:  # Vérifier les valeurs non initialisées (None)
+                return False, f"Veuillez compléter toutes les questions dans '{category}' - '{subcat}'."
     return True, ""
 
 # Update session state when navigating via radio
@@ -695,8 +753,8 @@ if page == "Chatbot":
         unsafe_allow_html=True
     )
 
-# Main content rendering
-st.title("Digital Twin Evaluation Framework")
+# Affichage du contenu principal
+st.title("Cadre d'Évaluation des Jumeaux Numériques")
 
 if page == "Profile Identification":
     profile_data = profile_identification()
@@ -709,7 +767,7 @@ elif page in evaluation_framework.keys():
         st.session_state.scroll_to_top = False  # Reset state
     
     # Render evaluation questions
-    st.subheader(f"Category: {page}")
+    st.subheader(f"Catégorie : {page}")
     st.write(evaluation_framework[page]["description"])
 
     for subcategory in evaluation_framework[page]["subcategories"]:
@@ -726,14 +784,14 @@ elif page in evaluation_framework.keys():
                 value=st.session_state.scores[page][subcategory["subcategory"]][i]
             )
         comment = st.text_area(
-            f"Comments for {subcategory['subcategory']}",
+            f"Commentaires pour {subcategory['subcategory']}",
             key=f"comment_{page}_{subcategory['subcategory']}",
             value=st.session_state.comments[page][subcategory["subcategory"]]
-        )
+            )
         st.session_state.comments[page][subcategory["subcategory"]] = comment
 
 elif page == "Summary":
-    st.subheader("Evaluation Summary")
+    st.subheader("Résumé de l'Évaluation")
 
     # Initialize summary data list
     summary_data = []
@@ -762,10 +820,10 @@ elif page == "Summary":
     else:
 
         st.write("""
-            ### Ready to Proceed?
-            The table above summarizes the evaluation scores for each category and subcategory.
-            A radar graph below visualizes the average scores by category.
-            Please click the 'Submit and Continue' button to share your results for further research. 😊
+            ### Prêt à continuer ?
+            Le tableau ci-dessus résume les scores d'évaluation pour chaque catégorie et sous-catégorie.
+            Le graphique radar ci-dessous visualise les scores moyens par catégorie.
+            Cliquez sur le bouton 'Soumettre et Continuer' pour partager vos résultats à des fins de recherche. 😊
         """)
 
         # Prepare data for radar chart
@@ -777,11 +835,11 @@ elif page == "Summary":
 
         # System classification
         st.markdown("---")
-        st.subheader("System Classification")
+        st.subheader("Classification du Système")
 
         classification, explanation, image_path = classify_system(st.session_state.scores)
 
-        st.subheader(f"System Classification: {classification}")
+        st.subheader(f"Classification du Système : {classification}")
 
         # Display Image
         if os.path.exists(image_path):
@@ -790,15 +848,15 @@ elif page == "Summary":
             st.warning(f"Image not found: {image_path}")
 
         # Display Explanation
-        st.write(f"**Explanation:** {explanation}")
+        st.write(f"**Explication :** {explanation}")
 
         # if the ssytem really is a Digital twin (in which case ... props to you!)
         if(classification == "Digital Twin"):
             # Display further explanation
-            st.write(f"There is a lack of uniformity in the definition of digital twins, which further emphasizes the need for a standardized framework. The core characteristics of the technology are pretty straight forward. However, different maturity levels can still be identified in the Digital Twin paradigm itself. Here is a deeper analysis of the maturity of your disital twin:")
+            st.write(f"Il n'existe pas de définition universelle des Jumeaux Numériques, ce qui souligne encore plus le besoin d'un cadre standardisé. Les caractéristiques fondamentales de cette technologie sont bien définies. Toutefois, différents niveaux de maturité peuvent encore être identifiés dans le paradigme du Jumeau Numérique. Voici une analyse plus approfondie de la maturité de votre Jumeau Numérique :")
 
         # Data submission
-        if st.button("Submit and Continue"):
+        if st.button("Soumettre et Continuer"):
             # Send data to Google Apps Script Web App
             timestamp = pd.Timestamp.now().isoformat()
 
@@ -862,8 +920,8 @@ elif page == "Summary":
             conn.update(worksheet="scores", data=updated_scores)
             conn.update(worksheet="comments", data=updated_comments)
 
-            st.success("Your feedback has been successfully submitted!")
-            st.success("Please head to the chatbot page on the left to discuss further with our custom GPT, trained on 57 research articles, based on your answers.")
+            st.success("Votre retour a été soumis avec succès !")
+            st.success("Veuillez vous rendre sur la page du chatbot à gauche pour poursuivre la discussion avec notre GPT personnalisé, entraîné sur la base de 57 articles de recherche, en fonction de vos réponses")
             st.session_state["summary_df"] = summary_df
 
             # Auto-generate first chatbot question
@@ -884,7 +942,6 @@ elif page == "Summary":
             Highlight strengths, weaknesses, and areas for improvement.
             """
             st.session_state["initial_chatbot_question"] = initial_question
-
 
 # Chatbot Page
 elif page == "Chatbot":
@@ -1040,5 +1097,3 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-
-
