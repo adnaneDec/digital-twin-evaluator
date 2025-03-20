@@ -207,7 +207,6 @@ if "unique_id" not in st.session_state:
     st.session_state["unique_id"] = str(uuid.uuid4())
 
 # Sidebar navigation with logos
-# Sidebar navigation with logos
 st.sidebar.markdown(
     """
     <style>
@@ -323,6 +322,7 @@ def classify_system(scores):
         image_path = "images/digital_model.png"
 
     # 4. Cyber-Physical System
+    ### A virer potentiellement
     elif (
         category_averages.get("Caractéristiques principales du jumeau numérique", 0) < 3
         and subcategory_averages.get("Connectivité et Synchronisation", {}).get("Connexion Physique-Virtuelle", 0) > 3
@@ -449,16 +449,16 @@ evaluation_framework = {
             {
                 "subcategory": "Retour d'Information Virtuel-Physique",
                 "questions": [
-                    {"question": "Un WMS peut-il prendre des décisions en temps réel pour optimiser les opérations de l’entrepôt ?", "type": "fuzzy"},
+                    {"question": "Un WMS peut-il prendre des décisions en temps réel pour optimiser les opérations de l’entrepôt ? (1 = aucune prise de décision, 3 = support de prise de décision, 5 = analyse et prise de décisions autonomes)", "type": "fuzzy"},
                     {"question": "Dans quelle mesure un WMS peut-il déclencher automatiquement des actions dans l’entrepôt (ex. : Lancement de préparation, ajustement des stocks, guidage les opérateurs, alert en cas d’anomalie) ? (1 = aucune réaction possible, 5 = envoi de commandes de contrôle ou notifications aux opérateurs)", "type": "fuzzy"}
                 ]
             },
             {
                 "subcategory": "Synchronisation",
                 "questions": [
-                    {"question": "La méthode de connexion entre l’entrepôt physique et le WMS est-elle bien définie (ex. : PDA, capteurs, infrastructure IT et matériel) ?", "type": "fuzzy"},
+                    {"question": "La méthode de connexion entre l’entrepôt physique et le WMS est-elle bien définie (ex. : PDA, capteurs, infrastructure IT et matériel) (1 = pas de transmission de données, 5 = transmission automatique de données l'entrepôt vers le WMS)?", "type": "fuzzy"},
                     {"question": "Le délai de mise à jour des données est-il adapté aux besoins opérationnels du WMS et aux exigences de la prise de décision en entrepôt?", "type": "fuzzy"},
-                    {"question": "Le WMS permet-il d’analyser l’historique, l’état actuel et les prévisions des opérations ?", "type": "fuzzy"}
+                    {"question": "Le WMS permet-il d’analyser l’historique, l’état actuel et les prédictions des opérations (1 = analyse de l'historique, 5 = analyse prédictive de l'entrepôt)?", "type": "fuzzy"}
                 ]
             }
         ]
@@ -469,7 +469,7 @@ evaluation_framework = {
             {
                 "subcategory": "Modélisation et Scénarios Prospectifs",
                 "questions": [
-                    {"question": "Le WMS dispose-t-il d'un moteur de calcul ou de simulation pour tester différents scénarios et optimiser les décisions ?", "type": "fuzzy"},
+                    {"question": "Le WMS dispose-t-il d'un moteur de calcul ou de simulation pour tester différents scénarios et optimiser les décisions ? (1 = Pas de calcul local, 5 = Calcul possible)", "type": "fuzzy"},
                     {"question": "Le WMS peut-il simuler des situations hypothétiques (ex. : pic d’activité, perturbations, changements de stock) ?", "type": "fuzzy"}
                 ]
             },
@@ -595,6 +595,72 @@ evaluation_framework = {
     }
 }
 
+# Track submission state to avoid multiple submissions
+if "has_submitted" not in st.session_state:
+    st.session_state["has_submitted"] = False
+
+# Submission Function
+def submit_evaluation():
+    """Handles submission logic to store data and prevent multiple submissions."""
+    if st.session_state["has_submitted"]:
+        st.warning("Vous avez déjà soumis vos réponses. Merci !")
+        return
+
+    timestamp = pd.Timestamp.now().isoformat()
+
+    # Prepare profile_data with unique_id
+    profile_data = {**st.session_state["profile_data"], "timestamp": timestamp, "unique_id": st.session_state["unique_id"]}
+
+    # Prepare scores
+    scores_data = []
+    for category, subcategories in st.session_state["scores"].items():
+        for subcat, answers in subcategories.items():
+            for idx, score in enumerate(answers):
+                subcategory_data = next(
+                    (sub for sub in evaluation_framework[category]["subcategories"] if sub["subcategory"] == subcat),
+                    None
+                )
+                question_text = subcategory_data["questions"][idx]["question"] if subcategory_data else "Unknown Question"
+
+                scores_data.append({
+                    "timestamp": timestamp,
+                    "unique_id": st.session_state["unique_id"],
+                    "category": category,
+                    "subcategory": subcat,
+                    "question": question_text,
+                    "score": score
+                })
+
+    # Prepare comments
+    comments_data = []
+    for category, subcategories in st.session_state["comments"].items():
+        for subcat, comment in subcategories.items():
+            comments_data.append({
+                "timestamp": timestamp,
+                "unique_id": st.session_state["unique_id"],
+                "category": category,
+                "subcategory": subcat,
+                "comment": comment
+            })
+
+    # Convert to DataFrames
+    profile_data_df = pd.DataFrame([profile_data])
+    scores_data_df = pd.DataFrame(scores_data)
+    comments_data_df = pd.DataFrame(comments_data)
+
+    # Merge with existing data
+    updated_profiles = pd.concat([profile_df, profile_data_df], ignore_index=True)
+    updated_scores = pd.concat([scores_df, scores_data_df], ignore_index=True)
+    updated_comments = pd.concat([comments_df, comments_data_df], ignore_index=True)
+
+    # Update Google Sheets
+    conn.update(worksheet="profile_data", data=updated_profiles)
+    conn.update(worksheet="scores", data=updated_scores)
+    conn.update(worksheet="comments", data=updated_comments)
+
+    st.success("✅ Votre retour a été soumis avec succès !")
+    st.session_state["has_submitted"] = True  # Prevent further submissions
+
 # Ensure navigation state exists in session
 if "navigation" not in st.session_state:
     st.session_state["navigation"] = "Profile Identification"  # Default page
@@ -641,6 +707,18 @@ def profile_identification():
     
     # Remplir les champs avec les valeurs existantes de l'état de session
     st.write("Avant de commencer, apprenons à mieux nous connaître 🙂 Les résultats de ce questionnaire seront collectés de manière anonyme à des fins de recherche. Cela vous prendra environ 15 minutes à compléter. Les résultats du questionnaire vous permettront également d'échanger avec un GPT spécialisé en littérature sur les jumeaux numériques. N'hésitez donc pas à ajouter autant de commentaires que nécessaire pour obtenir des réponses concrètes.")
+    
+    st.write("""
+    Toutes les questions de ce questionnaire doivent être évaluées sur une échelle de 1 à 5, reflétant le degré d'adéquation du système d'information ou du WMS aux critères proposés :
+    - **1** : Le système ne répond pas du tout à cette exigence.
+    - **2** : Le système y répond partiellement, mais de manière très limitée ou inefficace.
+    - **3** : Le critère est pris en charge, mais avec des lacunes ou des limitations significatives.
+    - **4** : L'exigence est bien remplie et le système est fonctionnel pour un usage quotidien.
+    - **5** : Le critère est pleinement intégré, démontrant une prise en charge avancée et efficace.
+
+    Veuillez évaluer chaque question de manière objective afin d'obtenir une analyse pertinente de votre système.
+    """)
+
     st.session_state["profile_data"]["field_of_work"] = st.radio(
         "Quel est votre domaine d'activité ?", 
         ["Recherche", "Industrie", "logistique et supply chain"], 
@@ -789,6 +867,25 @@ elif page in evaluation_framework.keys():
             value=st.session_state.comments[page][subcategory["subcategory"]]
             )
         st.session_state.comments[page][subcategory["subcategory"]] = comment
+    
+    if(page == "Maturité Technologique"):
+        if st.button("✅ Soumettre maintenant"):
+            submit_evaluation()
+            # Create summary DataFrame with comments
+            summary_data = []
+            for category, subcategories in st.session_state.scores.items():
+                for subcat, answers in subcategories.items():
+                    avg_score = np.mean([a for a in answers if a is not None]) if answers else 0
+                    summary_data.append({
+                        "Category": category,
+                        "Subcategory": subcat,
+                        "Average Score": avg_score,
+                        "Comments": st.session_state.comments[category][subcat]  # Include comments
+                    })
+            # Convert summary data to a DataFrame and display as a table
+            summary_df = pd.DataFrame(summary_data)
+            st.session_state["summary_df"] = summary_df
+
 
 elif page == "Summary":
     st.subheader("Résumé de l'Évaluation")
@@ -818,7 +915,12 @@ elif page == "Summary":
     if not valid:
         st.error(error_message)
     else:
-
+        # Submission button at the beginning of the Summary Page
+        if not st.session_state["has_submitted"]:  
+            if st.button("✅ Soumettre vos réponses"):
+                submit_evaluation()
+                st.session_state["summary_df"] = summary_df
+        
         st.write("""
             ### Prêt à continuer ?
             Le tableau ci-dessus résume les scores d'évaluation pour chaque catégorie et sous-catégorie.
@@ -855,73 +957,13 @@ elif page == "Summary":
             # Display further explanation
             st.write(f"Il n'existe pas de définition universelle des Jumeaux Numériques, ce qui souligne encore plus le besoin d'un cadre standardisé. Les caractéristiques fondamentales de cette technologie sont bien définies. Toutefois, différents niveaux de maturité peuvent encore être identifiés dans le paradigme du Jumeau Numérique. Voici une analyse plus approfondie de la maturité de votre Jumeau Numérique :")
 
-        # Data submission
-        if st.button("Soumettre et Continuer"):
-            # Send data to Google Apps Script Web App
-            timestamp = pd.Timestamp.now().isoformat()
-
-            # Prepare profile_data with unique_id
-            profile_data = {**st.session_state["profile_data"], "timestamp": timestamp, "unique_id": st.session_state["unique_id"]}
-
-            # Prepare scores
-            scores_data = []
-            for category, subcategories in st.session_state["scores"].items():
-                for subcat, answers in subcategories.items():
-                    for idx, score in enumerate(answers):
-                        subcategory_data = next(
-                            (sub for sub in evaluation_framework[category]["subcategories"] if sub["subcategory"] == subcat),
-                            None
-                        )
-                        if subcategory_data:
-                            question_text = subcategory_data["questions"][idx]["question"]
-                        else:
-                            raise ValueError(f"Subcategory '{subcat}' not found in category '{category}'.")
-
-                        scores_data.append({
-                            "timestamp": timestamp,
-                            "unique_id": st.session_state["unique_id"],
-                            "category": category,
-                            "subcategory": subcat,
-                            "question": question_text,
-                            "score": score
-                        })
-
-            # Prepare comments
-            comments_data = []
-            for category, subcategories in st.session_state["comments"].items():
-                for subcat, comment in subcategories.items():
-                    comments_data.append({
-                        "timestamp": timestamp,
-                        "unique_id": st.session_state["unique_id"],
-                        "category": category,
-                        "subcategory": subcat,
-                        "comment": comment
-                    })
-
-            # Send data to Google Sheets
-            data_to_send = {
-                "profile_data": profile_df,
-                "scores": scores_df,
-                "comments": comments_df,
-                }
-
-            # Convert dictionaries to a DataFrames
-            profile_data_df = pd.DataFrame([profile_data])
-            scores_data_df = pd.DataFrame(scores_data)
-            comments_data_df = pd.DataFrame(comments_data)
-
-            # Add the new data in the read datasets 
-            updated_profiles = pd.concat([profile_df, profile_data_df], ignore_index=True)
-            updated_scores = pd.concat([scores_df, scores_data_df], ignore_index=True)
-            updated_comments = pd.concat([comments_df, comments_data_df], ignore_index=True)
-
-            # Update Google Sheets with the new vendor data
-            conn.update(worksheet="profile_data", data=updated_profiles)
-            conn.update(worksheet="scores", data=updated_scores)
-            conn.update(worksheet="comments", data=updated_comments)
-
-            st.success("Votre retour a été soumis avec succès !")
-            st.success("Veuillez vous rendre sur la page du chatbot à gauche pour poursuivre la discussion avec notre GPT personnalisé, entraîné sur la base de 57 articles de recherche, en fonction de vos réponses")
+        # Final Submission Button at the End of Summary Page
+        if not st.session_state["has_submitted"]:
+            if st.button("✅ Soumettre et passer au Chatbot"):
+                submit_evaluation()
+        
+        if st.session_state["has_submitted"]:    
+            st.success("🎉 Vous pouvez maintenant discuter avec notre chatbot !")
             st.session_state["summary_df"] = summary_df
 
             # Auto-generate first chatbot question
