@@ -669,12 +669,29 @@ if "navigation" not in st.session_state:
 if "redirect_to" not in st.session_state:
     st.session_state["redirect_to"] = None
 
+# Ensure session state for navigation
+if "current_page" not in st.session_state:
+    st.session_state["current_page"] = "Profile Identification"  # Default start page
+
+# List of pages
+pages = ["Profile Identification"] + list(evaluation_framework.keys()) + ["Summary", "Chatbot"]
+
+# Ensure current_page exists in the list before calling .index()
+if st.session_state["current_page"] not in pages:
+    st.session_state["current_page"] = "Profile Identification"  # Default to the first page
+
 # Sidebar navigation
-page = st.sidebar.radio(
+sidebar_page = st.sidebar.radio(
     "Select a Category",
-    ["Profile Identification"] + list(evaluation_framework.keys()) + ["Summary", "Chatbot"],
-    key="navigation"
+    options=pages,
+    index=pages.index(st.session_state["current_page"])  # Now it's correctly formatted
 )
+
+# Sync sidebar selection with button navigation
+st.session_state["current_page"] = sidebar_page
+
+# Set the active page
+page = st.session_state["current_page"]
 
 # Check if the page has changed and trigger scroll
 if "last_page" not in st.session_state:
@@ -862,7 +879,7 @@ elif page in evaluation_framework.keys():
                 key=f"{page}_{subcategory['subcategory']}_{i}",
                 index=st.session_state.scores[page][subcategory["subcategory"]][i] - 1 if st.session_state.scores[page][subcategory["subcategory"]][i] else 0
             )
-            
+
         comment = st.text_area(
             f"Commentaires pour {subcategory['subcategory']}",
             key=f"comment_{page}_{subcategory['subcategory']}",
@@ -1111,6 +1128,29 @@ elif page == "Chatbot":
         else:
             # Optionally show a placeholder or do nothing
             st.write("Please type something to get an answer.")
+
+# --- Move Navigation Buttons to Bottom and Center Them ---
+st.markdown("---")  # Adds a horizontal separator
+
+# Create three columns and place buttons in the middle one
+col1, col2, col3 = st.columns([1, 2, 1])
+
+with col2:  # Center column
+    button_container = st.container()
+    with button_container:
+        col_left, col_center, col_right = st.columns([1, 2, 1])
+
+        with col_left:
+            if pages.index(page) > 0:  # If not the first page
+                if st.button("⬅️"):
+                    st.session_state["current_page"] = pages[pages.index(page) - 1]
+                    st.rerun()
+
+        with col_right:
+            if pages.index(page) < len(pages) - 1:  # If not the last page
+                if st.button("➡️"):
+                    st.session_state["current_page"] = pages[pages.index(page) + 1]
+                    st.rerun()
 
 # Footer section (Always displayed at the bottom of every page)
 # Custom CSS for fixed right-aligned footer with padding
