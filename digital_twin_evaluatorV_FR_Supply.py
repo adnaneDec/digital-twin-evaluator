@@ -853,14 +853,16 @@ elif page in evaluation_framework.keys():
         for i, question in enumerate(subcategory["questions"]):
             if st.session_state.scores[page][subcategory["subcategory"]][i] is None:
                 st.session_state.scores[page][subcategory["subcategory"]][i] = 0
-            st.session_state.scores[page][subcategory["subcategory"]][i] = st.slider(
-                question["question"],  # Extract the question text
-                0,
-                5,
-                step=1,
+        
+            # Replace slider with a horizontal radio button
+            st.session_state.scores[page][subcategory["subcategory"]][i] = st.radio(
+                question["question"], 
+                options=[1, 2, 3, 4, 5], 
+                horizontal=True,  # Display options in a row
                 key=f"{page}_{subcategory['subcategory']}_{i}",
-                value=st.session_state.scores[page][subcategory["subcategory"]][i]
+                index=st.session_state.scores[page][subcategory["subcategory"]][i] - 1 if st.session_state.scores[page][subcategory["subcategory"]][i] else 0
             )
+            
         comment = st.text_area(
             f"Commentaires pour {subcategory['subcategory']}",
             key=f"comment_{page}_{subcategory['subcategory']}",
