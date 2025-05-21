@@ -19,12 +19,6 @@ if "scroll_to_top" not in st.session_state:
 if "scroll_to_bottom" not in st.session_state:
     st.session_state.scroll_to_bottom = False
 
-# Initialize the OpenAI client
-dotenv.load_dotenv()
-
-openai_api_key = st.secrets["openai"]["openai_api_key"]
-client = OpenAI(api_key=openai_api_key)
-
 #os.getenv("OPENAI_API_KEY")
 from openai import OpenAI  # Import the client
 from openai import OpenAIError  # Import the updated exception handling
@@ -37,6 +31,9 @@ from io import BytesIO
 # Initialize the OpenAI client
 dotenv.load_dotenv()
 #openai.api_key = st.secrets["openai"]["openai_api_key"]
+
+openai_api_key = st.secrets["openai"]["openai_api_key"]
+client = OpenAI(api_key=openai_api_key)
 
 # Load article data from file
 with open(".streamlit/DT_info.json", "r", encoding="utf-8") as f:
@@ -256,8 +253,10 @@ def classify_system(scores):
     import numpy as np
 
     # Calculate average scores across all categories
-    category_averages = {category: np.mean([np.mean(subcat) for subcat in subcategories.values()]) 
-                         for category, subcategories in scores.items()}
+    category_averages = {
+        category: np.mean([np.mean(subcat) for subcat in subcategories.values()]) 
+        for category, subcategories in scores.items()
+    }
 
     # Calculate average scores for each subcategory
     subcategory_averages = {
@@ -536,6 +535,72 @@ evaluation_framework = {
     }
 }
 
+# Track submission state to avoid multiple submissions
+if "has_submitted" not in st.session_state:
+    st.session_state["has_submitted"] = False
+
+# Submission Function
+def submit_evaluation():
+    """Handles submission logic to store data and prevent multiple submissions."""
+    if st.session_state["has_submitted"]:
+        st.warning("You have already submitted your answers. Thank you!")
+        return
+
+    timestamp = pd.Timestamp.now().isoformat()
+
+    # Prepare profile_data with unique_id
+    profile_data = {**st.session_state["profile_data"], "timestamp": timestamp, "unique_id": st.session_state["unique_id"]}
+
+    # Prepare scores
+    scores_data = []
+    for category, subcategories in st.session_state["scores"].items():
+        for subcat, answers in subcategories.items():
+            for idx, score in enumerate(answers):
+                subcategory_data = next(
+                    (sub for sub in evaluation_framework[category]["subcategories"] if sub["subcategory"] == subcat),
+                    None
+                )
+                question_text = subcategory_data["questions"][idx]["question"] if subcategory_data else "Unknown Question"
+
+                scores_data.append({
+                    "timestamp": timestamp,
+                    "unique_id": st.session_state["unique_id"],
+                    "category": category,
+                    "subcategory": subcat,
+                    "question": question_text,
+                    "score": score
+                })
+
+    # Prepare comments
+    comments_data = []
+    for category, subcategories in st.session_state["comments"].items():
+        for subcat, comment in subcategories.items():
+            comments_data.append({
+                "timestamp": timestamp,
+                "unique_id": st.session_state["unique_id"],
+                "category": category,
+                "subcategory": subcat,
+                "comment": comment
+            })
+
+    # Convert to DataFrames
+    profile_data_df = pd.DataFrame([profile_data])
+    scores_data_df = pd.DataFrame(scores_data)
+    comments_data_df = pd.DataFrame(comments_data)
+
+    # Merge with existing data
+    updated_profiles = pd.concat([profile_df, profile_data_df], ignore_index=True)
+    updated_scores = pd.concat([scores_df, scores_data_df], ignore_index=True)
+    updated_comments = pd.concat([comments_df, comments_data_df], ignore_index=True)
+
+    # Update Google Sheets
+    conn.update(worksheet="profile_data", data=updated_profiles)
+    conn.update(worksheet="scores", data=updated_scores)
+    conn.update(worksheet="comments", data=updated_comments)
+
+    st.success("✅ Your feedback has been successfully submitted!")
+    st.session_state["has_submitted"] = True  # Prevent further submissions
+
 # Ensure navigation state exists in session
 if "navigation" not in st.session_state:
     st.session_state["navigation"] = "Profile Identification"  # Default page
@@ -544,12 +609,29 @@ if "navigation" not in st.session_state:
 if "redirect_to" not in st.session_state:
     st.session_state["redirect_to"] = None
 
+# Ensure session state for navigation
+if "current_page" not in st.session_state:
+    st.session_state["current_page"] = "Profile Identification"  # Default start page
+
+# List of pages
+pages = ["Profile Identification"] + list(evaluation_framework.keys()) + ["Summary", "Chatbot"]
+
+# Ensure current_page exists in the list before calling .index()
+if st.session_state["current_page"] not in pages:
+    st.session_state["current_page"] = "Profile Identification"  # Default to the first page
+
 # Sidebar navigation
-page = st.sidebar.radio(
+sidebar_page = st.sidebar.radio(
     "Select a Category",
-    ["Profile Identification"] + list(evaluation_framework.keys()) + ["Summary", "Chatbot"],
-    key="navigation"
+    options=pages,
+    index=pages.index(st.session_state["current_page"])  # Now it's correctly formatted
 )
+
+# Sync sidebar selection with button navigation
+st.session_state["current_page"] = sidebar_page
+
+# Set the active page
+page = st.session_state["current_page"]
 
 # Check if the page has changed and trigger scroll
 if "last_page" not in st.session_state:
@@ -579,40 +661,51 @@ def profile_identification():
             "department": "",
             "comments": ""
         }
+    
+    # Remplir les champs avec les valeurs existantes de l'état de session
+    st.write("Before we start, let's get to know each other better 🙂 The results of this questionnaire will be collected anonymously for research purposes. It will take approximately 15 minutes to complete. The results of the questionnaire will also allow you to exchange with a GPT specialized in digital twin literature. So feel free to add as many comments as you need to get concrete answers.")
+    
+    st.write("""
+    All questions in this questionnaire are to be rated on a scale of 1 to 5, reflecting the extent to which the information system or WMS meets the proposed criteria:
+    - **1** : The system does not meet this requirement at all.
+    - **2** : The system partially meets this requirement, but in a very limited or ineffective way.
+    - **3** : The requirement is supported, but with significant gaps or limitations.
+    - **4** : The requirement is well met and the system is functional for everyday use.
+    - **5** : The requirement is fully integrated, demonstrating advanced and effective support.
 
-    # Populate fields with existing session state values
-    st.write("Before we dive in, let us know each other a little bit 🙂. The results of this questionnaire are to be collected for research purposes. It will take you approximately 15 minutes to complete. The results of the questionnaire will also allow you to interact with a Digital Twin literature GPT regarding your answers or interests. Feel free to add as many comments as needed to get concrete answers.")
+    Please evaluate each question objectively to obtain a relevant analysis of your system.
+    """)
+
     st.session_state["profile_data"]["field_of_work"] = st.radio(
         "What is your field of work?", 
-        ["Research", "Industry", "logistics and supply chain"], 
-        index=["Research", "Industry", "logistics and supply chain"].index(st.session_state["profile_data"].get("field_of_work", "Research"))
+        ["Research", "Industry", "logistics et supply chain"], 
+        index=["Research", "Industry", "logistics et supply chain"].index(st.session_state["profile_data"].get("field_of_work", "Research"))
     )
     st.session_state["profile_data"]["years_experience"] = st.slider(
-        "How many years have you worked on the systems you are testing with this survey?", 
+        "How many years have you been working on your current system?", 
         0, 50, step=1, 
         value=st.session_state["profile_data"].get("years_experience", 0)
     )
     st.session_state["profile_data"]["current_system"] = st.text_input(
-        "What is the name of the system you use if any (Information System, Digital Twin, Warehouse Management System, IBM, Simulation, CPS ...)?", 
+        "What is the name you would give to the system you are currently using?", 
         value=st.session_state["profile_data"].get("current_system", "")
     )
     st.session_state["profile_data"]["position"] = st.text_input(
-        "What is your current work position?", 
+        "Quel est votre poste actuel ?", 
         value=st.session_state["profile_data"].get("position", "")
     )
     st.session_state["profile_data"]["country"] = st.text_input(
-        "Which country are you based in?", 
+        "What is your current position?", 
         value=st.session_state["profile_data"].get("country", "")
     )
     st.session_state["profile_data"]["department"] = st.text_input(
-        "What department are you affiliated with (e.g., R&D, Logistics)?", 
+        "Which department are you attached to (e.g., R&D, Logistics)?", 
         value=st.session_state["profile_data"].get("department", "")
     )
     st.session_state["profile_data"]["comments"] = st.text_area(
-        "Any additional comments or insights you would like to share?", 
+        "Do you have any additional comments or remarks to share?", 
         value=st.session_state["profile_data"].get("comments", "")
     )
-
     return st.session_state["profile_data"]
 
 # Radar Chart Function using Plotly
@@ -655,13 +748,13 @@ if "profile_data" not in st.session_state:
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-# Validation function
+# Fonction de validation
 def validate_all_answers():
-    """Ensure all questions are answered by checking for None values."""
+    """Vérifie que toutes les questions sont complétées en recherchant des valeurs None."""
     for category, subcategories in st.session_state.scores.items():
         for subcat, answers in subcategories.items():
-            if None in answers:  # Check for uninitialized (None) values
-                return False, f"Please complete all questions in '{category}' - '{subcat}'."
+            if None in answers:  # Vérifier les valeurs non initialisées (None)
+                return False, f"Please complete all the questions in '{category}' - '{subcat}'."
     return True, ""
 
 # Update session state when navigating via radio
@@ -695,7 +788,7 @@ if page == "Chatbot":
         unsafe_allow_html=True
     )
 
-# Main content rendering
+# Affichage du contenu principal
 st.title("Digital Twin Evaluation Framework")
 
 if page == "Profile Identification":
@@ -717,20 +810,41 @@ elif page in evaluation_framework.keys():
         for i, question in enumerate(subcategory["questions"]):
             if st.session_state.scores[page][subcategory["subcategory"]][i] is None:
                 st.session_state.scores[page][subcategory["subcategory"]][i] = 0
-            st.session_state.scores[page][subcategory["subcategory"]][i] = st.slider(
-                question["question"],  # Extract the question text
-                0,
-                5,
-                step=1,
+        
+            # Replace slider with a horizontal radio button
+            st.session_state.scores[page][subcategory["subcategory"]][i] = st.radio(
+                question["question"], 
+                options=[1, 2, 3, 4, 5], 
+                horizontal=True,  # Display options in a row
                 key=f"{page}_{subcategory['subcategory']}_{i}",
-                value=st.session_state.scores[page][subcategory["subcategory"]][i]
+                index=st.session_state.scores[page][subcategory["subcategory"]][i] - 1 if st.session_state.scores[page][subcategory["subcategory"]][i] else 0
             )
+
         comment = st.text_area(
             f"Comments for {subcategory['subcategory']}",
             key=f"comment_{page}_{subcategory['subcategory']}",
             value=st.session_state.comments[page][subcategory["subcategory"]]
-        )
+            )
         st.session_state.comments[page][subcategory["subcategory"]] = comment
+    
+    if(page == "Technological Readiness"):
+        if st.button("✅ Submit now"):
+            submit_evaluation()
+            # Create summary DataFrame with comments
+            summary_data = []
+            for category, subcategories in st.session_state.scores.items():
+                for subcat, answers in subcategories.items():
+                    avg_score = np.mean([a for a in answers if a is not None]) if answers else 0
+                    summary_data.append({
+                        "Category": category,
+                        "Subcategory": subcat,
+                        "Average Score": avg_score,
+                        "Comments": st.session_state.comments[category][subcat]  # Include comments
+                    })
+            # Convert summary data to a DataFrame and display as a table
+            summary_df = pd.DataFrame(summary_data)
+            st.session_state["summary_df"] = summary_df
+
 
 elif page == "Summary":
     st.subheader("Evaluation Summary")
@@ -760,12 +874,17 @@ elif page == "Summary":
     if not valid:
         st.error(error_message)
     else:
-
+        # Submission button at the beginning of the Summary Page
+        if not st.session_state["has_submitted"]:  
+            if st.button("✅ Submit your answers"):
+                submit_evaluation()
+                st.session_state["summary_df"] = summary_df
+        
         st.write("""
-            ### Ready to Proceed?
-            The table above summarizes the evaluation scores for each category and subcategory.
-            A radar graph below visualizes the average scores by category.
-            Please click the 'Submit and Continue' button to share your results for further research. 😊
+            ### Ready to continue?
+            The table above summarizes the evaluation scores for each category and sub-category.
+            The radar chart below shows average scores by category.
+            Click on the 'Submit and Continue' button to share your results for research purposes. 😊
         """)
 
         # Prepare data for radar chart
@@ -777,11 +896,11 @@ elif page == "Summary":
 
         # System classification
         st.markdown("---")
-        st.subheader("System Classification")
+        st.subheader("Classification du Système")
 
         classification, explanation, image_path = classify_system(st.session_state.scores)
 
-        st.subheader(f"System Classification: {classification}")
+        st.subheader(f"Classification du Système : {classification}")
 
         # Display Image
         if os.path.exists(image_path):
@@ -790,80 +909,20 @@ elif page == "Summary":
             st.warning(f"Image not found: {image_path}")
 
         # Display Explanation
-        st.write(f"**Explanation:** {explanation}")
+        st.write(f"**Explication :** {explanation}")
 
         # if the ssytem really is a Digital twin (in which case ... props to you!)
         if(classification == "Digital Twin"):
             # Display further explanation
-            st.write(f"There is a lack of uniformity in the definition of digital twins, which further emphasizes the need for a standardized framework. The core characteristics of the technology are pretty straight forward. However, different maturity levels can still be identified in the Digital Twin paradigm itself. Here is a deeper analysis of the maturity of your disital twin:")
+            st.write(f"Il n'existe pas de définition universelle des Jumeaux Numériques, ce qui souligne encore plus le besoin d'un cadre standardisé. Les caractéristiques fondamentales de cette technologie sont bien définies. Toutefois, différents niveaux de maturité peuvent encore être identifiés dans le paradigme du Jumeau Numérique. Voici une analyse plus approfondie de la maturité de votre Jumeau Numérique :")
 
-        # Data submission
-        if st.button("Submit and Continue"):
-            # Send data to Google Apps Script Web App
-            timestamp = pd.Timestamp.now().isoformat()
-
-            # Prepare profile_data with unique_id
-            profile_data = {**st.session_state["profile_data"], "timestamp": timestamp, "unique_id": st.session_state["unique_id"]}
-
-            # Prepare scores
-            scores_data = []
-            for category, subcategories in st.session_state["scores"].items():
-                for subcat, answers in subcategories.items():
-                    for idx, score in enumerate(answers):
-                        subcategory_data = next(
-                            (sub for sub in evaluation_framework[category]["subcategories"] if sub["subcategory"] == subcat),
-                            None
-                        )
-                        if subcategory_data:
-                            question_text = subcategory_data["questions"][idx]["question"]
-                        else:
-                            raise ValueError(f"Subcategory '{subcat}' not found in category '{category}'.")
-
-                        scores_data.append({
-                            "timestamp": timestamp,
-                            "unique_id": st.session_state["unique_id"],
-                            "category": category,
-                            "subcategory": subcat,
-                            "question": question_text,
-                            "score": score
-                        })
-
-            # Prepare comments
-            comments_data = []
-            for category, subcategories in st.session_state["comments"].items():
-                for subcat, comment in subcategories.items():
-                    comments_data.append({
-                        "timestamp": timestamp,
-                        "unique_id": st.session_state["unique_id"],
-                        "category": category,
-                        "subcategory": subcat,
-                        "comment": comment
-                    })
-
-            # Send data to Google Sheets
-            data_to_send = {
-                "profile_data": profile_df,
-                "scores": scores_df,
-                "comments": comments_df,
-                }
-
-            # Convert dictionaries to a DataFrames
-            profile_data_df = pd.DataFrame([profile_data])
-            scores_data_df = pd.DataFrame(scores_data)
-            comments_data_df = pd.DataFrame(comments_data)
-
-            # Add the new data in the read datasets 
-            updated_profiles = pd.concat([profile_df, profile_data_df], ignore_index=True)
-            updated_scores = pd.concat([scores_df, scores_data_df], ignore_index=True)
-            updated_comments = pd.concat([comments_df, comments_data_df], ignore_index=True)
-
-            # Update Google Sheets with the new vendor data
-            conn.update(worksheet="profile_data", data=updated_profiles)
-            conn.update(worksheet="scores", data=updated_scores)
-            conn.update(worksheet="comments", data=updated_comments)
-
-            st.success("Your feedback has been successfully submitted!")
-            st.success("Please head to the chatbot page on the left to discuss further with our custom GPT, trained on 57 research articles, based on your answers.")
+        # Final Submission Button at the End of Summary Page
+        if not st.session_state["has_submitted"]:
+            if st.button("✅ Submit and go to the chatbot"):
+                submit_evaluation()
+        
+        if st.session_state["has_submitted"]:    
+            st.success("🎉 You can now chat with our chatbot!")
             st.session_state["summary_df"] = summary_df
 
             # Auto-generate first chatbot question
@@ -884,7 +943,6 @@ elif page == "Summary":
             Highlight strengths, weaknesses, and areas for improvement.
             """
             st.session_state["initial_chatbot_question"] = initial_question
-
 
 # Chatbot Page
 elif page == "Chatbot":
@@ -971,7 +1029,6 @@ elif page == "Chatbot":
 
             st.divider()
 
-
         # Only process user input if it's non-empty
         prompt = st.chat_input("Hi! Ask me anything...")
 
@@ -1012,6 +1069,29 @@ elif page == "Chatbot":
             # Optionally show a placeholder or do nothing
             st.write("Please type something to get an answer.")
 
+# --- Move Navigation Buttons to Bottom and Center Them ---
+st.markdown("---")  # Adds a horizontal separator
+
+# Create three columns and place buttons in the middle one
+col1, col2, col3 = st.columns([1, 2, 1])
+
+with col2:  # Center column
+    button_container = st.container()
+    with button_container:
+        col_left, col_center, col_right = st.columns([1, 2, 1])
+
+        with col_left:
+            if pages.index(page) > 0:  # If not the first page
+                if st.button("⬅️"):
+                    st.session_state["current_page"] = pages[pages.index(page) - 1]
+                    st.rerun()
+
+        with col_right:
+            if pages.index(page) < len(pages) - 1:  # If not the last page
+                if st.button("➡️"):
+                    st.session_state["current_page"] = pages[pages.index(page) + 1]
+                    st.rerun()
+
 # Footer section (Always displayed at the bottom of every page)
 # Custom CSS for fixed right-aligned footer with padding
 st.markdown(
@@ -1040,6 +1120,3 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-
-
-## dire qussi je que je compte en faire et mon point de vue. a quoi ce questionnaire sert ...
