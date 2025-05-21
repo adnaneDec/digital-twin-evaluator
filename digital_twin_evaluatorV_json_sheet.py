@@ -936,7 +936,7 @@ elif page == "Summary":
                 summary_text += "\n"  # Blank line between entries
 
             initial_question = f"""
-            Based on the Digital Twin Evaluation results:
+            Based on the Digital Twin Evaluation results (each score is on a scale from 1 to 5):
             {summary_text}
     
             Please analyze and provide insights on how well this system aligns with Digital Twin principles.
